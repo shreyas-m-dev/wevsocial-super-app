@@ -92,7 +92,13 @@ export default function CareListScreen(): React.JSX.Element {
               if (providers && providers.length > 0) {
                 const firstProvider = providers[0];
                 if (firstProvider) {
-                  router.push(`/(tabs)/care/${firstProvider.id}`);
+                  router.push({
+                    pathname: `/(tabs)/care/${firstProvider.id}` as `/${string}`,
+                    params: {
+                      startTime: suggestedTimeWindow.startTime,
+                      endTime: suggestedTimeWindow.endTime,
+                    },
+                  });
                 }
               }
               dismissSuggestion();

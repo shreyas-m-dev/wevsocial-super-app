@@ -35,8 +35,10 @@ function useProviderDetails(id: string) {
  * OFFLINE: Supports offline booking through the queue.
  */
 export default function CareDetailScreen(): React.JSX.Element {
-  const params = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; startTime?: string; endTime?: string }>();
   const id = params.id ?? '';
+  const prefilledStartTime = params.startTime;
+  const prefilledEndTime = params.endTime;
   const { theme } = useTheme();
   const { isConnected } = useNetworkStatus();
   const queryClient = useQueryClient();
@@ -52,12 +54,22 @@ export default function CareDetailScreen(): React.JSX.Element {
     if (!provider) return;
     setIsBooking(true);
 
-    // Generate a 2-hour time window starting from the next round hour
-    const now = new Date();
-    const startTime = new Date(now);
-    startTime.setHours(startTime.getHours() + 1, 0, 0, 0);
-    const endTime = new Date(startTime);
-    endTime.setHours(endTime.getHours() + 2);
+    let startIso: string;
+    let endIso: string;
+
+    if (prefilledStartTime && prefilledEndTime) {
+      startIso = prefilledStartTime;
+      endIso = prefilledEndTime;
+    } else {
+      // Generate a 2-hour time window starting from the next round hour
+      const now = new Date();
+      const startTime = new Date(now);
+      startTime.setHours(startTime.getHours() + 1, 0, 0, 0);
+      const endTime = new Date(startTime);
+      endTime.setHours(endTime.getHours() + 2);
+      startIso = startTime.toISOString();
+      endIso = endTime.toISOString();
+    }
 
     try {
       if (isConnected) {
@@ -65,8 +77,8 @@ export default function CareDetailScreen(): React.JSX.Element {
           method: 'POST',
           body: {
             providerId: provider.id,
-            startTime: startTime.toISOString(),
-            endTime: endTime.toISOString(),
+            startTime: startIso,
+            endTime: endIso,
           },
         });
 
@@ -82,8 +94,8 @@ export default function CareDetailScreen(): React.JSX.Element {
       } else {
         await enqueue('care', {
           providerId: provider.id,
-          startTime: startTime.toISOString(),
-          endTime: endTime.toISOString(),
+          startTime: startIso,
+          endTime: endIso,
           providerName: provider.name,
         });
 
