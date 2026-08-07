@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: wevsocial
+      POSTGRES_USER: wevsocial
+      POSTGRES_PASSWORD: wevsocial_dev_password
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U wevsocial']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://wevsocial:wevsocial_dev_password@postgres:5432/wevsocial
+      ACCESS_TOKEN_SECRET: wevsocial-dev-access-secret-change-in-prod
+      REFRESH_TOKEN_SECRET: wevsocial-dev-refresh-secret-change-in-prod
+      PORT: '3000'
+      NODE_ENV: development
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
