@@ -30,11 +30,22 @@ cd ..
 # Install mobile dependencies
 npm install
 
-# Start Expo
-npx expo start
+# Start Expo (Web is the verified working platform)
+npx expo start --web
 ```
 
-Then press `a` for Android emulator or `i` for iOS simulator.
+> [!WARNING]
+> **Android / Expo Go Connection Issue**
+> If you attempt to run the app on Android via Expo Go (by pressing `a`), you may encounter the exact error: `java.io.IOException: Failed to download remote update`.
+> 
+> We have exhaustively investigated and ruled out the standard causes:
+> - **Network/Firewall**: Fails even over direct USB/ADB connection with tunnel/LAN bypass.
+> - **Port Conflict**: Verified port 8081 is clear and Metro binds successfully.
+> - **OTA Config**: Verified `app.json` has `updates.enabled: false` and no `runtimeVersion` or `eas.projectId`.
+> - **Transitive Dependencies**: Verified `expo-updates` is completely absent from the codebase and `package.json`, including transitive dependencies via `npm ls expo-updates`.
+> - **Manifest Resolution**: Verified `curl http://localhost:8081` successfully returns the Metro manifest on the host machine.
+> 
+> Despite these clean checks, Expo Go natively intercepts the connection and fails in a pre-JS state before the React application bundles. **Web is currently the verified working platform** to test the full React/UI functionality while this native Expo Go regression is diagnosed.
 
 ### Seed Accounts
 
