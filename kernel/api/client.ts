@@ -8,9 +8,11 @@
 
 import { useAuthStore } from '../stores/auth';
 
-const API_BASE_URL = __DEV__
-  ? 'http://10.0.2.2:3000/api' // Android emulator -> host machine
-  : 'http://localhost:3000/api';
+import { Platform } from 'react-native';
+
+const API_BASE_URL = Platform.OS === 'web'
+  ? 'http://localhost:3000/api'
+  : (__DEV__ ? 'http://10.0.2.2:3000/api' : 'http://localhost:3000/api');
 
 // Also try for physical device / iOS simulator
 export const getApiBaseUrl = (): string => {

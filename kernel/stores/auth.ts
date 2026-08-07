@@ -13,9 +13,9 @@ import { UserDTO, AuthTokensDTO } from '../../types/api';
 import { ScopedUser } from '../../types/sdk';
 import { Platform } from 'react-native';
 
-const API_BASE_URL = __DEV__
-  ? 'http://10.0.2.2:3000/api'
-  : 'http://localhost:3000/api';
+const API_BASE_URL = Platform.OS === 'web'
+  ? 'http://localhost:3000/api'
+  : (__DEV__ ? 'http://10.0.2.2:3000/api' : 'http://localhost:3000/api');
 
 const SECURE_STORE_ACCESS_TOKEN = 'wev_access_token';
 const SECURE_STORE_REFRESH_TOKEN = 'wev_refresh_token';
