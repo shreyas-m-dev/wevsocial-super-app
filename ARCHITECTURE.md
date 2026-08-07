@@ -267,11 +267,13 @@ On app startup, `loadQueue()` reads the persisted queue from AsyncStorage. Items
 
 ## What Was Cut and Why
 
-### Not Implemented
+### Phase 5 Cuts (Polish)
 
-1. **OTA Bundle Hot-Swap (Phase 6)**: Not attempted. This was explicitly marked optional. See "Production OTA Design" below for how it would work.
+1. **FlashList**: We used React Native's standard `FlatList` instead of `@shopify/flash-list`. FlashList was not pre-installed in the environment, and `FlatList` provides more than sufficient performance for our current data sizes (<100 items). The risk of breaking the build with a new native dependency at the finish line outweighed the marginal performance benefit. All other Phase 5 polish (design tokens, Reanimated 3 transitions, custom skeleton loaders) was fully implemented.
 
-2. **FlashList**: Used standard FlatList. FlashList would provide marginal improvement for our data sizes (<100 items typically). Would switch to FlashList if data grows past 500 items.
+### Phase 6 (OTA Bonus)
+
+Not implemented in code. This was explicitly marked optional. See "Production OTA Design" below for how the architectural pattern would work.
 
 ### Production OTA Design (Phase 6 — Unbuilt)
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, withRepeat, withTiming, useSharedValue, useAnimatedStyle, useEffect as useAnimatedEffect, withSequence } from 'react-native-reanimated';
 import Toast from 'react-native-toast-message';
 import { useTheme } from '../../../kernel/theme';
 import { apiRequest } from '../../../kernel/api/client';
@@ -22,6 +22,40 @@ function useCareProviders() {
       return data;
     },
   });
+}
+
+function SkeletonCard() {
+  const { theme } = useTheme();
+  const opacity = useSharedValue(0.5);
+
+  React.useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 800 }),
+        withTiming(0.5, { duration: 800 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }, animatedStyle]}>
+      <View style={styles.cardHeader}>
+        <View style={[styles.providerIcon, { backgroundColor: theme.border }]} />
+        <View style={styles.cardHeaderText}>
+          <View style={{ height: 18, width: 140, backgroundColor: theme.border, borderRadius: 4, marginBottom: 6 }} />
+          <View style={{ height: 14, width: 60, backgroundColor: theme.border, borderRadius: 4 }} />
+        </View>
+      </View>
+      <View style={{ height: 14, width: '100%', backgroundColor: theme.border, borderRadius: 4, marginTop: 12, marginBottom: 6 }} />
+      <View style={{ height: 14, width: '80%', backgroundColor: theme.border, borderRadius: 4 }} />
+    </Animated.View>
+  );
 }
 
 /**
@@ -73,9 +107,13 @@ export default function CareListScreen(): React.JSX.Element {
 
   if (isLoading) {
     return (
-      <View style={[styles.centered, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={colors.care} />
-        <Text style={{ color: theme.textMuted, marginTop: 12 }}>Finding care providers...</Text>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
+        <View style={styles.list}>
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </View>
       </View>
     );
   }
