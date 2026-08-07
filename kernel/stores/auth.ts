@@ -11,6 +11,7 @@ import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { UserDTO, AuthTokensDTO } from '../../types/api';
 import { ScopedUser } from '../../types/sdk';
+import { Platform } from 'react-native';
 
 const API_BASE_URL = __DEV__
   ? 'http://10.0.2.2:3000/api'
@@ -93,9 +94,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw new Error('Invalid response from server');
     }
 
-    // Persist tokens securely
-    await SecureStore.setItemAsync(SECURE_STORE_ACCESS_TOKEN, data.accessToken);
-    await SecureStore.setItemAsync(SECURE_STORE_REFRESH_TOKEN, data.refreshToken);
+    // Persist tokens securely (or in localStorage on web)
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(SECURE_STORE_ACCESS_TOKEN, data.accessToken);
+        localStorage.setItem(SECURE_STORE_REFRESH_TOKEN, data.refreshToken);
+      } else {
+        await SecureStore.setItemAsync(SECURE_STORE_ACCESS_TOKEN, data.accessToken);
+        await SecureStore.setItemAsync(SECURE_STORE_REFRESH_TOKEN, data.refreshToken);
+      }
+    } catch (e) {
+      console.error('Failed to store tokens:', e);
+    }
 
     set({
       user: data.user,
@@ -130,8 +140,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       throw new Error('Invalid response from server');
     }
 
-    await SecureStore.setItemAsync(SECURE_STORE_ACCESS_TOKEN, data.accessToken);
-    await SecureStore.setItemAsync(SECURE_STORE_REFRESH_TOKEN, data.refreshToken);
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.setItem(SECURE_STORE_ACCESS_TOKEN, data.accessToken);
+        localStorage.setItem(SECURE_STORE_REFRESH_TOKEN, data.refreshToken);
+      } else {
+        await SecureStore.setItemAsync(SECURE_STORE_ACCESS_TOKEN, data.accessToken);
+        await SecureStore.setItemAsync(SECURE_STORE_REFRESH_TOKEN, data.refreshToken);
+      }
+    } catch (e) {
+      console.error('Failed to store tokens:', e);
+    }
 
     set({
       user: data.user,
@@ -162,8 +181,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
 
     // Clear secure storage
-    await SecureStore.deleteItemAsync(SECURE_STORE_ACCESS_TOKEN);
-    await SecureStore.deleteItemAsync(SECURE_STORE_REFRESH_TOKEN);
+    try {
+      if (Platform.OS === 'web') {
+        localStorage.removeItem(SECURE_STORE_ACCESS_TOKEN);
+        localStorage.removeItem(SECURE_STORE_REFRESH_TOKEN);
+      } else {
+        await SecureStore.deleteItemAsync(SECURE_STORE_ACCESS_TOKEN);
+        await SecureStore.deleteItemAsync(SECURE_STORE_REFRESH_TOKEN);
+      }
+    } catch (e) {
+      console.error('Failed to clear tokens:', e);
+    }
 
     set({
       user: null,
@@ -202,8 +230,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return false;
       }
 
-      await SecureStore.setItemAsync(SECURE_STORE_ACCESS_TOKEN, data.accessToken);
-      await SecureStore.setItemAsync(SECURE_STORE_REFRESH_TOKEN, data.refreshToken);
+      try {
+        if (Platform.OS === 'web') {
+          localStorage.setItem(SECURE_STORE_ACCESS_TOKEN, data.accessToken);
+          localStorage.setItem(SECURE_STORE_REFRESH_TOKEN, data.refreshToken);
+        } else {
+          await SecureStore.setItemAsync(SECURE_STORE_ACCESS_TOKEN, data.accessToken);
+          await SecureStore.setItemAsync(SECURE_STORE_REFRESH_TOKEN, data.refreshToken);
+        }
+      } catch (e) {
+        console.error('Failed to store refreshed tokens:', e);
+      }
 
       set({
         user: data.user,
@@ -225,8 +262,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
    */
   loadStoredTokens: async (): Promise<void> => {
     try {
-      const accessToken = await SecureStore.getItemAsync(SECURE_STORE_ACCESS_TOKEN);
-      const refreshToken = await SecureStore.getItemAsync(SECURE_STORE_REFRESH_TOKEN);
+      let accessToken: string | null = null;
+      let refreshToken: string | null = null;
+      
+      if (Platform.OS === 'web') {
+        accessToken = localStorage.getItem(SECURE_STORE_ACCESS_TOKEN);
+        refreshToken = localStorage.getItem(SECURE_STORE_REFRESH_TOKEN);
+      } else {
+        accessToken = await SecureStore.getItemAsync(SECURE_STORE_ACCESS_TOKEN);
+        refreshToken = await SecureStore.getItemAsync(SECURE_STORE_REFRESH_TOKEN);
+      }
 
       if (!accessToken || !refreshToken) {
         set({ isLoading: false });
