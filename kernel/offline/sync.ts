@@ -10,6 +10,7 @@
  */
 
 import NetInfo from '@react-native-community/netinfo';
+import Toast from 'react-native-toast-message';
 import { apiRequest, ApiError } from '../api/client';
 import {
   getPendingItems,
@@ -51,10 +52,23 @@ async function processItem(item: QueueItem): Promise<void> {
     }
 
     await updateItemStatus(item.id, 'SUCCESS');
+    Toast.show({
+      type: 'success',
+      text1: 'Booking Confirmed',
+      text2: 'Your offline booking was synced successfully.',
+      position: 'bottom',
+    });
   } catch (error: unknown) {
     if (error instanceof ApiError && error.status === 409) {
       // CONFLICT: Slot already booked. Transition to CONFLICT_REJECTED.
       await updateItemStatus(item.id, 'CONFLICT_REJECTED', error.message);
+      Toast.show({
+        type: 'error',
+        text1: 'Booking Conflict',
+        text2: `A slot you booked offline is no longer available: ${error.message}`,
+        position: 'bottom',
+        autoHide: false, // Keep until user dismisses
+      });
     } else {
       // Network or server error — reset to QUEUED for retry
       await updateItemStatus(item.id, 'QUEUED', 
@@ -98,6 +112,16 @@ export async function startSyncManager(): Promise<void> {
   unsubscribeNetInfo = NetInfo.addEventListener((state) => {
     if (state.isConnected && state.isInternetReachable !== false) {
       // Device just came online — process queue
+      const pendingCount = getPendingItems().length;
+      if (pendingCount > 0) {
+        Toast.show({
+          type: 'info',
+          text1: 'Back Online',
+          text2: `Syncing ${pendingCount} offline request(s)...`,
+          position: 'bottom',
+        });
+      }
+
       processQueue().catch((error: unknown) => {
         console.error('[SyncManager] Error processing queue:', error);
       });
