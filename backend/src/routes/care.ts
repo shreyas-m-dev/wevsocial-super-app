@@ -147,8 +147,25 @@ router.get('/bookings', authenticateToken, (async (req: Request, res: Response) 
       ORDER BY b.start_time DESC
     `, [req.user!.userId]);
 
+    interface CareBookingData {
+      id: string;
+      provider: {
+        id: string;
+        name: string;
+        obfuscated_lat: number;
+        obfuscated_lng: number;
+        real_lat?: number;
+        real_lng?: number;
+      };
+      start_time: string;
+      end_time: string;
+      status: string;
+      address: string | null;
+      created_at: string;
+    }
+
     const bookings = result.rows.map(row => {
-      const data: Record<string, unknown> = {
+      const data: CareBookingData = {
         id: row.id,
         provider: {
           id: row.provider_id,

@@ -1,10 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { pool } from './pool.js';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 async function runMigrations() {
   const client = await pool.connect();
@@ -64,6 +60,6 @@ async function runMigrations() {
 }
 
 // If run directly
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1].endsWith('migrate.ts') || process.argv[1].endsWith('migrate.js')) {
+if (require.main === module || process.argv[1].endsWith('migrate.ts') || process.argv[1].endsWith('migrate.js')) {
   runMigrations().then(() => pool.end());
 }

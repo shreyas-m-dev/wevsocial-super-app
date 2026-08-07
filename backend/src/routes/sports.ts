@@ -7,7 +7,7 @@ import { z } from 'zod';
 const router = Router();
 
 // Public route to list activities
-router.get('/', (async (req: Request, res: Response) => {
+router.get('/', (async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(`
       SELECT id, title, sport_type, description, location_name, start_time, end_time, 

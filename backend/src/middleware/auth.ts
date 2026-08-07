@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { RequestHandler } from 'express';
 import { verifyAccessToken, TokenPayload } from '../utils/tokens.js';
 
 // Extend Express Request type

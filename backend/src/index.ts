@@ -13,7 +13,7 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-app.get('/health', (req: Request, res: Response) => {
+app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok' });
 });
 
@@ -23,7 +23,7 @@ app.use('/api/care', careRoutes);
 app.use('/api/events', eventsRoutes);
 
 // Global error handler
-app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred.' });
 });

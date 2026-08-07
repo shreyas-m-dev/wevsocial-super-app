@@ -4,7 +4,7 @@ import { pool } from '../db/pool.js';
 const router = Router();
 
 // Public route to list events
-router.get('/', (async (req: Request, res: Response) => {
+router.get('/', (async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(`
       SELECT id, title, description, location_name, start_time, host_id, created_at

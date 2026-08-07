@@ -87,6 +87,6 @@ async function seed() {
 }
 
 // If run directly
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1].endsWith('seed.ts') || process.argv[1].endsWith('seed.js')) {
+if (require.main === module || process.argv[1].endsWith('seed.ts') || process.argv[1].endsWith('seed.js')) {
   seed().then(() => pool.end());
 }
