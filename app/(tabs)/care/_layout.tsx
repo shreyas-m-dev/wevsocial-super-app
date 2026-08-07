@@ -14,8 +14,8 @@ export default function CareLayout(): React.JSX.Element {
   }, []);
 
   const onNavigate = useCallback((target: string, params?: Record<string, string>) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push({ pathname: `/(tabs)/care/${target}` as any, params });
+    const route = `/(tabs)/care/${target}` as `/${string}`;
+    router.push({ pathname: route, params });
   }, [router]);
 
   return (

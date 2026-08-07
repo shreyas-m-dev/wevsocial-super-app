@@ -19,7 +19,7 @@ router.get('/providers', (async (req: Request, res: Response) => {
       SELECT id, name, bio, obfuscated_lat, obfuscated_lng, services, hourly_rate, verified
       FROM care_providers
     `;
-    let values: any[] = [];
+    let values: unknown[] = [];
 
     if (lat !== null && !isNaN(lat) && lng !== null && !isNaN(lng)) {
       query += `
@@ -69,7 +69,7 @@ router.get('/providers/:id', authenticateToken, (async (req: Request, res: Respo
 
     const hasConfirmedBooking = bookingResult.rows.length > 0;
 
-    let responseData: any = {
+    let responseData: Record<string, unknown> = {
       id: provider.id,
       name: provider.name,
       bio: provider.bio,
@@ -148,7 +148,7 @@ router.get('/bookings', authenticateToken, (async (req: Request, res: Response) 
     `, [req.user!.userId]);
 
     const bookings = result.rows.map(row => {
-      const data: any = {
+      const data: Record<string, unknown> = {
         id: row.id,
         provider: {
           id: row.provider_id,

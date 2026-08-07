@@ -4,6 +4,8 @@ import { Link } from 'expo-router';
 import { useTheme } from '../../kernel/theme';
 import { useAuthStore } from '../../kernel/stores/auth';
 
+import { colors } from '../../kernel/theme/tokens';
+
 export default function LoginScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const [email, setEmail] = useState('');
@@ -38,7 +40,7 @@ export default function LoginScreen(): React.JSX.Element {
       <Text style={[styles.title, { color: theme.primary }]}>WevSocial</Text>
       <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Welcome back</Text>
       
-      {error && <Text style={[styles.error, { color: theme.error }]}>{error}</Text>}
+      {error && <Text style={[styles.error, { color: colors.error.main }]}>{error}</Text>}
 
       <TextInput
         style={[styles.input, { backgroundColor: theme.surface, color: theme.text, borderColor: theme.border }]}

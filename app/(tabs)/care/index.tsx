@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -7,9 +7,13 @@ import Toast from 'react-native-toast-message';
 import { useTheme } from '../../../kernel/theme';
 import { apiRequest } from '../../../kernel/api/client';
 import { CareProviderDTO } from '../../../types/api';
-import { careManifest } from '../../../mini-apps/care/manifest';
 import { useWevSDK } from '../../../kernel/SDKContext';
+import { colors, spacing, borderRadius } from '../../../kernel/theme/tokens';
 
+/**
+ * Repository hook — fetches care providers with obfuscated coordinates.
+ * CRITICAL: The API response NEVER contains real lat/lng.
+ */
 function useCareProviders() {
   return useQuery({
     queryKey: ['care', 'providers'],
@@ -20,72 +24,159 @@ function useCareProviders() {
   });
 }
 
+/**
+ * Care provider list screen.
+ * 
+ * BRIDGE INTEGRATION: Listens for 'sports:session_booked' events from Sports.
+ * When a sports session is booked, shows a toast banner offering childcare
+ * for that time window. Tapping deep-links into the care booking flow.
+ */
 export default function CareListScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const router = useRouter();
   const { data: providers, isLoading, refetch, isRefetching } = useCareProviders();
   const sdk = useWevSDK();
+  const [suggestedTimeWindow, setSuggestedTimeWindow] = useState<{
+    startTime: string;
+    endTime: string;
+    activityTitle: string;
+  } | null>(null);
 
+  /**
+   * CROSS-MINI-APP COORDINATION:
+   * Listen for sports booking events through the bridge.
+   * When Sports emits 'sports:session_booked', Care shows a contextual
+   * banner offering childcare for the booked time window.
+   */
   useEffect(() => {
-    const unsub = sdk.listen('sports:session_booked', (payload) => {
-      if (payload && typeof payload === 'object' && 'title' in payload) {
-        Toast.show({
-          type: 'info',
-          text1: `Need childcare during ${payload.title as string}?`,
-          text2: 'Tap here to find providers',
-          onPress: () => {
-            // Optional: navigate and filter by time window
-          },
-        });
-      }
+    const unsubscribe = sdk.bridge.on('sports:session_booked', (payload) => {
+      setSuggestedTimeWindow({
+        startTime: payload.startTime,
+        endTime: payload.endTime,
+        activityTitle: payload.activityTitle,
+      });
+
+      Toast.show({
+        type: 'info',
+        text1: `Need childcare during ${payload.activityTitle}?`,
+        text2: 'Tap to find available providers',
+        visibilityTime: 5000,
+      });
     });
-    return unsub;
+
+    return unsubscribe;
   }, [sdk]);
+
+  const dismissSuggestion = useCallback(() => {
+    setSuggestedTimeWindow(null);
+  }, []);
 
   if (isLoading) {
     return (
       <View style={[styles.centered, { backgroundColor: theme.background }]}>
-        <ActivityIndicator size="large" color={careManifest.accentColor} />
+        <ActivityIndicator size="large" color={colors.care} />
+        <Text style={{ color: theme.textMuted, marginTop: 12 }}>Finding care providers...</Text>
       </View>
     );
   }
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
+      {/* Cross-app suggestion banner */}
+      {suggestedTimeWindow && (
+        <Animated.View entering={FadeInDown.springify()}>
+          <TouchableOpacity
+            style={[styles.suggestionBanner, { backgroundColor: colors.care + '20', borderColor: colors.care + '40' }]}
+            onPress={() => {
+              // Deep-link to first available provider
+              if (providers && providers.length > 0) {
+                const firstProvider = providers[0];
+                if (firstProvider) {
+                  router.push(`/(tabs)/care/${firstProvider.id}`);
+                }
+              }
+              dismissSuggestion();
+            }}
+            activeOpacity={0.8}
+          >
+            <View style={styles.suggestionContent}>
+              <Text style={{ fontSize: 20 }}>👶</Text>
+              <View style={{ flex: 1, marginLeft: spacing.sm }}>
+                <Text style={{ color: colors.care, fontWeight: '700', fontSize: 14 }}>
+                  Need childcare during {suggestedTimeWindow.activityTitle}?
+                </Text>
+                <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
+                  {new Date(suggestedTimeWindow.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {' – '}
+                  {new Date(suggestedTimeWindow.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={dismissSuggestion}>
+                <Text style={{ color: theme.textMuted, fontSize: 18 }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+
       <FlatList
         data={providers}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshing={isRefetching}
-        onRefresh={refetch}
+        onRefresh={() => { refetch(); }}
         ListEmptyComponent={
-          <View style={styles.centered}>
-            <Text style={{ color: theme.textSecondary }}>No providers found.</Text>
+          <View style={styles.emptyState}>
+            <Text style={{ fontSize: 48 }}>❤️</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text }]}>No Providers Yet</Text>
+            <Text style={{ color: theme.textSecondary, textAlign: 'center' }}>
+              Check back soon for vetted childcare and eldercare providers.
+            </Text>
           </View>
         }
         renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.delay(index * 100).springify()}>
+          <Animated.View entering={FadeInDown.delay(index * 80).springify()}>
             <TouchableOpacity
               style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              onPress={() => router.push({ pathname: '/(tabs)/care/[id]' as any, params: { id: item.id } })}
+              onPress={() => router.push(`/(tabs)/care/${item.id}`)}
+              activeOpacity={0.7}
             >
               <View style={styles.cardHeader}>
-                <Text style={{ fontSize: 24 }}>❤️</Text>
-                <View style={{ marginLeft: 12 }}>
-                  <Text style={[styles.cardTitle, { color: theme.text }]}>
-                    {item.name} {item.isVerified && '✅'}
-                  </Text>
-                  <Text style={{ color: theme.textSecondary }}>${item.hourlyRate}/hr</Text>
+                <View style={[styles.providerIcon, { backgroundColor: colors.care + '20' }]}>
+                  <Text style={{ fontSize: 24 }}>👩‍⚕️</Text>
+                </View>
+                <View style={styles.cardHeaderText}>
+                  <View style={styles.nameRow}>
+                    <Text style={[styles.cardTitle, { color: theme.text }]}>{item.name}</Text>
+                    {item.verified && (
+                      <View style={[styles.verifiedBadge, { backgroundColor: colors.success.main + '20' }]}>
+                        <Text style={{ color: colors.success.main, fontSize: 11, fontWeight: '600' }}>✓ Verified</Text>
+                      </View>
+                    )}
+                  </View>
+                  {item.hourlyRate != null && (
+                    <Text style={{ color: colors.care, fontWeight: '600', fontSize: 14, marginTop: 2 }}>
+                      ${item.hourlyRate}/hr
+                    </Text>
+                  )}
                 </View>
               </View>
-              <View style={styles.servicesContainer}>
-                {item.services.map((svc) => (
-                  <View key={svc} style={[styles.badge, { backgroundColor: careManifest.accentColor + '20' }]}>
-                    <Text style={{ color: careManifest.accentColor, fontSize: 12 }}>{svc}</Text>
-                  </View>
-                ))}
-              </View>
+
+              {item.bio ? (
+                <Text style={{ color: theme.textSecondary, fontSize: 13, marginTop: spacing.sm }} numberOfLines={2}>
+                  {item.bio}
+                </Text>
+              ) : null}
+
+              {item.services.length > 0 && (
+                <View style={styles.servicesContainer}>
+                  {item.services.map((svc) => (
+                    <View key={svc} style={[styles.serviceBadge, { backgroundColor: colors.care + '15' }]}>
+                      <Text style={{ color: colors.care, fontSize: 12, fontWeight: '500' }}>{svc}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
             </TouchableOpacity>
           </Animated.View>
         )}
@@ -97,10 +188,74 @@ export default function CareListScreen(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { padding: 16 },
-  card: { padding: 16, borderRadius: 16, borderWidth: 1, marginBottom: 12 },
-  cardHeader: { flexDirection: 'row', alignItems: 'center' },
-  cardTitle: { fontSize: 18, fontWeight: 'bold' },
-  servicesContainer: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 12, gap: 8 },
-  badge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  list: { padding: spacing.md },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 80,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  suggestionBanner: {
+    margin: spacing.md,
+    marginBottom: 0,
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+  },
+  suggestionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  card: {
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    marginBottom: spacing.sm,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  providerIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  cardHeaderText: {
+    marginLeft: spacing.sm,
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+  },
+  verifiedBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  servicesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: spacing.sm,
+    gap: 6,
+  },
+  serviceBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
 });

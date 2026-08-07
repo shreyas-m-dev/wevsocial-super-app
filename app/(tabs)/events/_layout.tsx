@@ -2,10 +2,10 @@ import React, { useCallback } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { useTheme } from '../../../kernel/theme';
 import { MiniAppHost } from '../../../kernel/MiniAppHost';
-import { sportsManifest } from '../../../mini-apps/sports/manifest';
+import { eventsManifest } from '../../../mini-apps/events/manifest';
 import { useAuthStore } from '../../../kernel/stores/auth';
 
-export default function SportsLayout(): React.JSX.Element {
+export default function EventsLayout(): React.JSX.Element {
   const { theme } = useTheme();
   const router = useRouter();
   
@@ -14,14 +14,12 @@ export default function SportsLayout(): React.JSX.Element {
   }, []);
 
   const onNavigate = useCallback((target: string, params?: Record<string, string>) => {
-    // Navigation is scoped to the sports stack only.
-    // Using string template for dynamic route construction.
-    const route = `/(tabs)/sports/${target}` as `/${string}`;
+    const route = `/(tabs)/events/${target}` as `/${string}`;
     router.push({ pathname: route, params });
   }, [router]);
 
   return (
-    <MiniAppHost manifest={sportsManifest} getUser={getUser} onNavigate={onNavigate}>
+    <MiniAppHost manifest={eventsManifest} getUser={getUser} onNavigate={onNavigate}>
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.surface },
@@ -30,8 +28,7 @@ export default function SportsLayout(): React.JSX.Element {
           contentStyle: { backgroundColor: theme.background },
         }}
       >
-        <Stack.Screen name="index" options={{ title: 'Sports' }} />
-        <Stack.Screen name="[id]" options={{ title: 'Activity Details' }} />
+        <Stack.Screen name="index" options={{ title: 'Events' }} />
       </Stack>
     </MiniAppHost>
   );
