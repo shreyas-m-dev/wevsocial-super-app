@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "WevSocial",
-    "slug": "wevsocial",
+    "slug": "wevsocial-v2",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
