@@ -63,7 +63,7 @@ router.post('/register', (async (req: Request, res: Response) => {
     const userRole = role || 'GUEST';
 
     const result = await pool.query(
-      'INSERT INTO users (email, password_hash, display_name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, role, display_name',
+      'INSERT INTO users (email, password_hash, display_name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, role, display_name, created_at',
       [email, passwordHash, displayName || null, userRole]
     );
 
@@ -78,7 +78,8 @@ router.post('/register', (async (req: Request, res: Response) => {
         id: user.id,
         email: user.email,
         displayName: user.display_name,
-        role: user.role
+        role: user.role,
+        createdAt: user.created_at
       },
       accessToken,
       refreshToken
@@ -97,7 +98,7 @@ router.post('/login', (async (req: Request, res: Response) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
 
-    const result = await pool.query('SELECT id, email, password_hash, role, display_name FROM users WHERE email = $1', [email]);
+    const result = await pool.query('SELECT id, email, password_hash, role, display_name, created_at FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
 
     if (!user) {
@@ -121,7 +122,8 @@ router.post('/login', (async (req: Request, res: Response) => {
         id: user.id,
         email: user.email,
         displayName: user.display_name,
-        role: user.role
+        role: user.role,
+        createdAt: user.created_at
       },
       accessToken,
       refreshToken
@@ -207,7 +209,16 @@ router.get('/me', authenticateToken, (async (req: Request, res: Response) => {
       return;
     }
 
-    res.status(200).json({ user: result.rows[0] });
+    const userRow = result.rows[0];
+    res.status(200).json({ 
+      user: {
+        id: userRow.id,
+        email: userRow.email,
+        displayName: userRow.display_name,
+        role: userRow.role,
+        createdAt: userRow.created_at
+      }
+    });
   } catch (err: unknown) {
     console.error('Get me error:', err);
     res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' });

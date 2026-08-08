@@ -10,8 +10,10 @@ const router = Router();
 router.get('/', (async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(`
-      SELECT id, title, sport_type, description, location_name, start_time, end_time, 
-             max_participants, current_participants, host_id, created_at
+      SELECT id, title, sport_type as "sportType", description, location_name as "locationName",
+             start_time as "startTime", end_time as "endTime",
+             max_participants as "maxParticipants", current_participants as "currentParticipants",
+             host_id as "hostId", created_at as "createdAt"
       FROM sports_activities
       ORDER BY start_time ASC
     `);
@@ -22,13 +24,34 @@ router.get('/', (async (_req: Request, res: Response) => {
   }
 }) as RequestHandler);
 
+// Get current user's bookings
+router.get('/bookings', authenticateToken, (async (req: Request, res: Response) => {
+  // Move this before /:id/book so it doesn't get matched as an ID
+  try {
+    const result = await pool.query(`
+      SELECT b.id, b.activity_id as "activityId", b.user_id as "userId", b.status, 
+             b.idempotency_key as "idempotencyKey", b.created_at as "createdAt"
+      FROM sports_bookings b
+      WHERE b.user_id = $1
+      ORDER BY b.created_at DESC
+    `, [req.user!.userId]);
+
+    res.status(200).json(result.rows);
+  } catch (err: unknown) {
+    console.error('List bookings error:', err);
+    res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' });
+  }
+}) as RequestHandler);
+
 // Public route to get activity detail
 router.get('/:id', (async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await pool.query(`
-      SELECT id, title, sport_type, description, location_name, lat, lng, start_time, end_time, 
-             max_participants, current_participants, host_id, created_at
+      SELECT id, title, sport_type as "sportType", description, location_name as "locationName",
+             lat, lng, start_time as "startTime", end_time as "endTime",
+             max_participants as "maxParticipants", current_participants as "currentParticipants",
+             host_id as "hostId", created_at as "createdAt"
       FROM sports_activities
       WHERE id = $1
     `, [id]);
@@ -66,7 +89,10 @@ router.post('/', authenticateToken, requireRole('HOST', 'ADMIN'), (async (req: R
       INSERT INTO sports_activities 
         (id, title, sport_type, description, location_name, lat, lng, start_time, end_time, max_participants, host_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING *
+      RETURNING id, title, sport_type as "sportType", description, location_name as "locationName",
+          lat, lng, start_time as "startTime", end_time as "endTime",
+          max_participants as "maxParticipants", current_participants as "currentParticipants",
+          host_id as "hostId", created_at as "createdAt"
     `, [
       id, parsed.title, parsed.sportType, parsed.description || null, 
       parsed.locationName || null, parsed.lat || null, parsed.lng || null, 
@@ -84,25 +110,7 @@ router.post('/', authenticateToken, requireRole('HOST', 'ADMIN'), (async (req: R
   }
 }) as RequestHandler);
 
-// Get current user's bookings
-router.get('/bookings', authenticateToken, (async (req: Request, res: Response) => {
-  // Move this before /:id/book so it doesn't get matched as an ID
-  try {
-    const result = await pool.query(`
-      SELECT b.id as booking_id, b.status, b.created_at, 
-             a.id as activity_id, a.title, a.start_time, a.location_name
-      FROM sports_bookings b
-      JOIN sports_activities a ON b.activity_id = a.id
-      WHERE b.user_id = $1
-      ORDER BY b.created_at DESC
-    `, [req.user!.userId]);
 
-    res.status(200).json(result.rows);
-  } catch (err: unknown) {
-    console.error('List bookings error:', err);
-    res.status(500).json({ error: 'INTERNAL_SERVER_ERROR' });
-  }
-}) as RequestHandler);
 
 const bookSchema = z.object({
   idempotencyKey: z.string().optional()
@@ -126,7 +134,7 @@ router.post('/:id/book', authenticateToken, (async (req: Request, res: Response)
 
     if (idempotencyKey) {
       const existing = await client.query(
-        'SELECT * FROM sports_bookings WHERE idempotency_key = $1 AND user_id = $2',
+        'SELECT id, activity_id as "activityId", user_id as "userId", status, idempotency_key as "idempotencyKey", created_at as "createdAt" FROM sports_bookings WHERE idempotency_key = $1 AND user_id = $2',
         [idempotencyKey, userId]
       );
       if (existing.rows.length > 0) {
@@ -160,7 +168,8 @@ router.post('/:id/book', authenticateToken, (async (req: Request, res: Response)
     const bookingResult = await client.query(`
       INSERT INTO sports_bookings (id, activity_id, user_id, idempotency_key)
       VALUES ($1, $2, $3, $4)
-      RETURNING *
+      RETURNING id, activity_id as "activityId", user_id as "userId", status,
+          idempotency_key as "idempotencyKey", created_at as "createdAt"
     `, [bookingId, activityId, userId, idempotencyKey || null]);
 
     await client.query(`

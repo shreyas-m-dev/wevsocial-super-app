@@ -7,7 +7,7 @@ const router = Router();
 router.get('/', (async (_req: Request, res: Response) => {
   try {
     const result = await pool.query(`
-      SELECT id, title, description, location_name, start_time, host_id, created_at
+      SELECT id, title, description, location_name as "locationName", start_time as "startTime", host_id as "hostId", created_at as "createdAt"
       FROM events
       ORDER BY start_time ASC
     `);
@@ -23,7 +23,7 @@ router.get('/:id', (async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const result = await pool.query(`
-      SELECT id, title, description, location_name, start_time, host_id, created_at
+      SELECT id, title, description, location_name as "locationName", start_time as "startTime", host_id as "hostId", created_at as "createdAt"
       FROM events
       WHERE id = $1
     `, [id]);

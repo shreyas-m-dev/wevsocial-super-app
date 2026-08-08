@@ -16,7 +16,7 @@ router.get('/providers', (async (req: Request, res: Response) => {
     const lng = req.query.lng ? parseFloat(req.query.lng as string) : null;
 
     let query = `
-      SELECT id, name, bio, obfuscated_lat, obfuscated_lng, services, hourly_rate, verified
+      SELECT id, name, bio, obfuscated_lat as "obfuscatedLat", obfuscated_lng as "obfuscatedLng", services, hourly_rate as "hourlyRate", verified
       FROM care_providers
     `;
     let values: unknown[] = [];
@@ -73,10 +73,10 @@ router.get('/providers/:id', authenticateToken, (async (req: Request, res: Respo
       id: provider.id,
       name: provider.name,
       bio: provider.bio,
-      obfuscated_lat: provider.obfuscated_lat,
-      obfuscated_lng: provider.obfuscated_lng,
+      obfuscatedLat: provider.obfuscated_lat,
+      obfuscatedLng: provider.obfuscated_lng,
       services: provider.services,
-      hourly_rate: provider.hourly_rate,
+      hourlyRate: provider.hourly_rate,
       verified: provider.verified
     };
 
@@ -84,8 +84,8 @@ router.get('/providers/:id', authenticateToken, (async (req: Request, res: Respo
       const realLocationResult = await pool.query('SELECT lat, lng FROM care_providers WHERE id = $1', [id]);
       // Only include real coords if explicitly allowed. 
       // Requirement says "Real address only if user has a CONFIRMED booking", here we map that to the real lat/lng.
-      responseData.real_lat = realLocationResult.rows[0].lat;
-      responseData.real_lng = realLocationResult.rows[0].lng;
+      responseData.realLat = realLocationResult.rows[0].lat;
+      responseData.realLng = realLocationResult.rows[0].lng;
     }
 
     res.status(200).json(responseData);
@@ -118,7 +118,7 @@ router.post('/bookings', authenticateToken, (async (req: Request, res: Response)
     const result = await pool.query(`
       INSERT INTO care_bookings (id, provider_id, user_id, start_time, end_time, address)
       VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, provider_id, user_id, start_time, end_time, status, created_at
+      RETURNING id, provider_id as "providerId", user_id as "userId", start_time as "startTime", end_time as "endTime", status, address, created_at as "createdAt"
     `, [id, providerId, req.user!.userId, startTime, endTime, address || null]);
 
     res.status(201).json(result.rows[0]);
@@ -139,8 +139,8 @@ router.get('/bookings', authenticateToken, (async (req: Request, res: Response) 
       SELECT 
         b.id, b.start_time, b.end_time, b.status, b.address, b.created_at,
         p.id as provider_id, p.name as provider_name, 
-        p.obfuscated_lat, p.obfuscated_lng,
-        p.lat as real_lat, p.lng as real_lng
+        p.obfuscated_lat as "obfuscatedLat", p.obfuscated_lng as "obfuscatedLng",
+        p.lat as "realLat", p.lng as "realLng"
       FROM care_bookings b
       JOIN care_providers p ON b.provider_id = p.id
       WHERE b.user_id = $1
@@ -152,16 +152,16 @@ router.get('/bookings', authenticateToken, (async (req: Request, res: Response) 
       provider: {
         id: string;
         name: string;
-        obfuscated_lat: number;
-        obfuscated_lng: number;
-        real_lat?: number;
-        real_lng?: number;
+        obfuscatedLat: number;
+        obfuscatedLng: number;
+        realLat?: number;
+        realLng?: number;
       };
-      start_time: string;
-      end_time: string;
+      startTime: string;
+      endTime: string;
       status: string;
       address: string | null;
-      created_at: string;
+      createdAt: string;
     }
 
     const bookings = result.rows.map(row => {
@@ -170,19 +170,19 @@ router.get('/bookings', authenticateToken, (async (req: Request, res: Response) 
         provider: {
           id: row.provider_id,
           name: row.provider_name,
-          obfuscated_lat: row.obfuscated_lat,
-          obfuscated_lng: row.obfuscated_lng
+          obfuscatedLat: row.obfuscatedLat,
+          obfuscatedLng: row.obfuscatedLng
         },
-        start_time: row.start_time,
-        end_time: row.end_time,
+        startTime: row.start_time,
+        endTime: row.end_time,
         status: row.status,
         address: row.address,
-        created_at: row.created_at
+        createdAt: row.created_at
       };
 
       if (row.status === 'CONFIRMED') {
-        data.provider.real_lat = row.real_lat;
-        data.provider.real_lng = row.real_lng;
+        data.provider.realLat = row.realLat;
+        data.provider.realLng = row.realLng;
       }
 
       return data;
@@ -226,7 +226,7 @@ router.patch('/bookings/:id/confirm', authenticateToken, requireRole('HOST', 'AD
       UPDATE care_bookings 
       SET status = 'CONFIRMED' 
       WHERE id = $1
-      RETURNING *
+      RETURNING id, provider_id as "providerId", user_id as "userId", start_time as "startTime", end_time as "endTime", status, address, created_at as "createdAt"
     `, [id]);
 
     res.status(200).json(result.rows[0]);

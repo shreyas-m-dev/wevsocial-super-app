@@ -68,7 +68,7 @@ export interface CareProviderDTO {
   obfuscatedLat: number;
   obfuscatedLng: number;
   services: string[];
-  hourlyRate: number | null;
+  hourlyRate: string | number | null;
   verified: boolean;
   /** Only present when user has a CONFIRMED booking */
   realLat?: number;
@@ -112,7 +112,7 @@ export interface EventDTO {
 }
 
 // ---- Shared ----
-export type BookingStatus = 'CONFIRMED' | 'PENDING_SYNC' | 'CANCELLED' | 'CONFLICT_REJECTED';
+export type BookingStatus = 'CONFIRMED' | 'PENDING' | 'PENDING_SYNC' | 'CANCELLED' | 'CONFLICT_REJECTED';
 
 /** Offline booking queue state machine */
 export type BookingSyncState = 'IDLE' | 'QUEUED' | 'SYNCING' | 'SUCCESS' | 'CONFLICT_REJECTED';
