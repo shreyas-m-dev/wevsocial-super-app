@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text } from 'react-native';
+import { Text, View, Image } from 'react-native';
 import { Tabs } from 'expo-router';
 import { useTheme } from '../../kernel/theme';
 import { getRegisteredApps } from '../../kernel/registry';
@@ -22,7 +22,15 @@ export default function TabLayout(): React.JSX.Element {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        headerStyle: { backgroundColor: theme.surface, borderBottomWidth: 1, borderBottomColor: theme.border },
+        headerTitleAlign: 'left',
+        headerTitle: () => (
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Image source={require('../../assets/icon.png')} style={{ width: 28, height: 28, borderRadius: 6, marginRight: 10 }} />
+            <Text style={{ fontSize: 18, fontWeight: 'bold', color: theme.text }}>WevSocial</Text>
+          </View>
+        ),
         tabBarStyle: {
           backgroundColor: theme.tabBar,
           borderTopColor: theme.border,
