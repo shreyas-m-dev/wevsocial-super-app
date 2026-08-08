@@ -284,10 +284,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       });
 
       if (response.ok) {
-        const userData = await parseJsonResponse(response);
-        if (typeof userData === 'object' && userData !== null) {
+        const userData = await parseJsonResponse(response) as { user?: UserDTO };
+        if (typeof userData === 'object' && userData !== null && userData.user) {
           set({
-            user: userData as UserDTO,
+            user: userData.user,
             accessToken,
             refreshToken,
             isAuthenticated: true,

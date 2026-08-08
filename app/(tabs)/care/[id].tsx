@@ -26,6 +26,16 @@ function useProviderDetails(id: string) {
   });
 }
 
+function useMyCareBookings() {
+  return useQuery({
+    queryKey: ['care', 'bookings'],
+    queryFn: async (): Promise<CareBookingDTO[]> => {
+      const { data } = await apiRequest<CareBookingDTO[]>('/care/bookings');
+      return data;
+    },
+  });
+}
+
 /**
  * Care provider detail + booking screen.
  * 
@@ -35,16 +45,16 @@ function useProviderDetails(id: string) {
  * OFFLINE: Supports offline booking through the queue.
  */
 export default function CareDetailScreen(): React.JSX.Element {
-  const params = useLocalSearchParams<{ id: string; startTime?: string; endTime?: string }>();
-  const id = params.id ?? '';
-  const prefilledStartTime = params.startTime;
-  const prefilledEndTime = params.endTime;
+  const { id, startTime: prefilledStartTime, endTime: prefilledEndTime } = useLocalSearchParams<{ id: string; startTime?: string; endTime?: string }>();
   const { theme } = useTheme();
   const { isConnected } = useNetworkStatus();
   const queryClient = useQueryClient();
-  const { data: provider, isLoading } = useProviderDetails(id);
+  const { data: provider, isLoading } = useProviderDetails(id ?? '');
+  const { data: myBookings } = useMyCareBookings();
   const [isBooking, setIsBooking] = useState(false);
   const [bookingStatus, setBookingStatus] = useState<'idle' | 'pending_sync' | 'confirmed' | 'error'>('idle');
+
+  const hasBooked = myBookings?.some((b) => b.provider.id === id && b.status !== 'CANCELLED');
 
   /**
    * Handle care booking — online or offline.
@@ -227,17 +237,17 @@ export default function CareDetailScreen(): React.JSX.Element {
         <TouchableOpacity
           style={[
             styles.bookButton,
-            { backgroundColor: bookingStatus === 'confirmed' ? theme.border : colors.care },
+            { backgroundColor: bookingStatus === 'confirmed' || hasBooked ? theme.border : colors.care },
           ]}
           onPress={handleBook}
-          disabled={isBooking || bookingStatus === 'confirmed'}
+          disabled={isBooking || bookingStatus === 'confirmed' || hasBooked}
           activeOpacity={0.8}
         >
           {isBooking ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.bookButtonText}>
-              {bookingStatus === 'confirmed'
+              {hasBooked || bookingStatus === 'confirmed'
                 ? 'Already Booked ✓'
                 : bookingStatus === 'pending_sync'
                 ? 'Queued for Sync'

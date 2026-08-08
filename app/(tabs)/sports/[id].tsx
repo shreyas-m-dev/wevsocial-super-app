@@ -50,16 +50,28 @@ function formatTime(dateStr: string | undefined | null): string {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function useMySportsBookings() {
+  return useQuery({
+    queryKey: ['sports', 'bookings'],
+    queryFn: async (): Promise<SportsBookingDTO[]> => {
+      const { data } = await apiRequest<SportsBookingDTO[]>('/sports/bookings');
+      return data;
+    },
+  });
+}
+
 export default function SportsDetailScreen(): React.JSX.Element {
-  const params = useLocalSearchParams<{ id: string }>();
-  const id = params.id ?? '';
+  const { id } = useLocalSearchParams<{ id: string }>();
   const { theme } = useTheme();
   const sdk = useWevSDK();
   const { isConnected } = useNetworkStatus();
   const queryClient = useQueryClient();
   const { data: activity, isLoading } = useActivityDetails(id);
+  const { data: myBookings } = useMySportsBookings();
   const [isBooking, setIsBooking] = useState(false);
   const [bookingStatus, setBookingStatus] = useState<'idle' | 'pending_sync' | 'success' | 'error'>('idle');
+
+  const hasBooked = myBookings?.some((b) => b.activityId === id && b.status !== 'CANCELLED');
 
   /**
    * Booking handler — online or offline path.
@@ -239,17 +251,17 @@ export default function SportsDetailScreen(): React.JSX.Element {
         <TouchableOpacity
           style={[
             styles.bookButton,
-            { backgroundColor: isFull || bookingStatus === 'success' ? theme.border : colors.sports },
+            { backgroundColor: isFull || bookingStatus === 'success' || hasBooked ? theme.border : colors.sports },
           ]}
           onPress={handleBook}
-          disabled={isBooking || isFull || bookingStatus === 'success'}
+          disabled={isBooking || isFull || bookingStatus === 'success' || hasBooked}
           activeOpacity={0.8}
         >
           {isBooking ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.bookButtonText}>
-              {bookingStatus === 'success'
+              {hasBooked || bookingStatus === 'success'
                 ? 'Already Booked ✓'
                 : bookingStatus === 'pending_sync'
                 ? 'Queued for Sync'
