@@ -116,8 +116,8 @@ router.post('/bookings', authenticateToken, (async (req: Request, res: Response)
 
     const id = uuidv4();
     const result = await pool.query(`
-      INSERT INTO care_bookings (id, provider_id, user_id, start_time, end_time, address, status)
-      VALUES ($1, $2, $3, $4, $5, $6, 'CONFIRMED')
+      INSERT INTO care_bookings (id, provider_id, user_id, start_time, end_time, address)
+      VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING id, provider_id as "providerId", user_id as "userId", start_time as "startTime", end_time as "endTime", status, address, created_at as "createdAt"
     `, [id, providerId, req.user!.userId, startTime, endTime, address || null]);
 
