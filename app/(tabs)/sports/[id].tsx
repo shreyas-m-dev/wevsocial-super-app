@@ -35,6 +35,21 @@ function useActivityDetails(id: string) {
  * OFFLINE: If the device is offline, the booking is enqueued in the offline
  * queue and the UI shows "Pending Sync" state.
  */
+
+function formatDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return 'Date TBD';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'Date TBD';
+  return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+function formatTime(dateStr: string | undefined | null): string {
+  if (!dateStr) return '--:--';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '--:--';
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function SportsDetailScreen(): React.JSX.Element {
   const params = useLocalSearchParams<{ id: string }>();
   const id = params.id ?? '';
@@ -77,6 +92,8 @@ export default function SportsDetailScreen(): React.JSX.Element {
 
         // Invalidate activity query to refresh participant count
         await queryClient.invalidateQueries({ queryKey: ['sports', 'activities'] });
+        // Invalidate bookings so the new booking appears in "my bookings"
+        await queryClient.invalidateQueries({ queryKey: ['sports', 'bookings'] });
 
         /**
          * BRIDGE EVENT: Emit booking event for cross-mini-app coordination.
@@ -147,7 +164,7 @@ export default function SportsDetailScreen(): React.JSX.Element {
     );
   }
 
-  const spotsLeft = activity.maxParticipants - activity.currentParticipants;
+  const spotsLeft = (activity.maxParticipants ?? 0) - (activity.currentParticipants ?? 0);
   const isFull = spotsLeft <= 0;
 
   return (
@@ -161,7 +178,7 @@ export default function SportsDetailScreen(): React.JSX.Element {
           <Text style={styles.headerEmoji}>⚽</Text>
           <Text style={[styles.title, { color: theme.text }]}>{activity.title}</Text>
           <Text style={[styles.sportType, { color: colors.sports }]}>
-            {activity.sportType.charAt(0).toUpperCase() + activity.sportType.slice(1)}
+            {activity.sportType ? activity.sportType.charAt(0).toUpperCase() + activity.sportType.slice(1) : 'Sport'}
           </Text>
         </View>
 
@@ -177,16 +194,12 @@ export default function SportsDetailScreen(): React.JSX.Element {
             <Text style={styles.detailIcon}>📅</Text>
             <View>
               <Text style={{ color: theme.text, fontWeight: '600' }}>
-                {new Date(activity.startTime).toLocaleDateString(undefined, {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                })}
+                {formatDate(activity.startTime)}
               </Text>
               <Text style={{ color: theme.textSecondary, fontSize: 13 }}>
-                {new Date(activity.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {formatTime(activity.startTime)}
                 {' – '}
-                {new Date(activity.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {formatTime(activity.endTime)}
               </Text>
             </View>
           </View>
@@ -201,7 +214,7 @@ export default function SportsDetailScreen(): React.JSX.Element {
           <View style={styles.detailRow}>
             <Text style={styles.detailIcon}>👥</Text>
             <Text style={{ color: isFull ? colors.error.main : theme.text }}>
-              {isFull ? 'Fully booked' : `${spotsLeft} of ${activity.maxParticipants} spots available`}
+              {isFull ? 'Fully booked' : `${spotsLeft} of ${activity.maxParticipants ?? '?'} spots available`}
             </Text>
           </View>
         </View>

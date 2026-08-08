@@ -91,6 +91,8 @@ export default function CareDetailScreen(): React.JSX.Element {
 
         // Refresh provider details to get real location (if confirmed)
         await queryClient.invalidateQueries({ queryKey: ['care', 'providers', id] });
+        // Invalidate bookings so the new booking appears in "my bookings"
+        await queryClient.invalidateQueries({ queryKey: ['care', 'bookings'] });
       } else {
         await enqueue('care', {
           providerId: provider.id,
@@ -192,7 +194,7 @@ export default function CareDetailScreen(): React.JSX.Element {
         </View>
 
         {/* Services */}
-        {provider.services.length > 0 && (
+        {Array.isArray(provider.services) && provider.services.length > 0 && (
           <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Services</Text>
             <View style={styles.servicesContainer}>
