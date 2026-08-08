@@ -63,6 +63,21 @@ function SkeletonCard() {
  * Sports list screen.
  * Reads the debug crash flag to demonstrate fault isolation.
  */
+
+function formatDate(dateStr: string | undefined | null): string {
+  if (!dateStr) return 'Date TBD';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return 'Date TBD';
+  return d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+}
+
+function formatTime(dateStr: string | undefined | null): string {
+  if (!dateStr) return '--:--';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '--:--';
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function SportsListScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const router = useRouter();
@@ -98,7 +113,7 @@ export default function SportsListScreen(): React.JSX.Element {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <FlatList
-        data={activities}
+        data={activities ?? []}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshing={isRefetching}
@@ -113,7 +128,7 @@ export default function SportsListScreen(): React.JSX.Element {
           </View>
         }
         renderItem={({ item, index }) => {
-          const spotsLeft = item.maxParticipants - item.currentParticipants;
+          const spotsLeft = (item.maxParticipants ?? 0) - (item.currentParticipants ?? 0);
           const sportEmoji = getSportEmoji(item.sportType);
 
           return (
@@ -130,14 +145,14 @@ export default function SportsListScreen(): React.JSX.Element {
                   <View style={styles.cardHeaderText}>
                     <Text style={[styles.cardTitle, { color: theme.text }]}>{item.title}</Text>
                     <Text style={[styles.sportType, { color: colors.sports }]}>
-                      {item.sportType.charAt(0).toUpperCase() + item.sportType.slice(1)}
+                      {item.sportType ? item.sportType.charAt(0).toUpperCase() + item.sportType.slice(1) : 'Unknown'}
                     </Text>
                   </View>
                 </View>
 
                 <View style={styles.cardDetails}>
                   <Text style={{ color: theme.textSecondary, fontSize: 14 }}>
-                    📅 {new Date(item.startTime).toLocaleDateString()} · {new Date(item.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    📅 {formatDate(item.startTime)} · {formatTime(item.startTime)}
                   </Text>
                   {item.locationName ? (
                     <Text style={{ color: theme.textSecondary, fontSize: 14, marginTop: 4 }}>
@@ -182,7 +197,7 @@ function getSportEmoji(sportType: string): string {
     volleyball: '🏐',
     cricket: '🏏',
   };
-  return map[sportType.toLowerCase()] ?? '🏅';
+  return sportType ? map[sportType.toLowerCase()] ?? '🏅' : '🏅';
 }
 
 const styles = StyleSheet.create({

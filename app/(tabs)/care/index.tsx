@@ -65,6 +65,14 @@ function SkeletonCard() {
  * When a sports session is booked, shows a toast banner offering childcare
  * for that time window. Tapping deep-links into the care booking flow.
  */
+
+function formatTime(dateStr: string | undefined | null): string {
+  if (!dateStr) return '--:--';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '--:--';
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function CareListScreen(): React.JSX.Element {
   const { theme } = useTheme();
   const router = useRouter();
@@ -150,9 +158,9 @@ export default function CareListScreen(): React.JSX.Element {
                   Need childcare during {suggestedTimeWindow.activityTitle}?
                 </Text>
                 <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 2 }}>
-                  {new Date(suggestedTimeWindow.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatTime(suggestedTimeWindow.startTime)}
                   {' – '}
-                  {new Date(suggestedTimeWindow.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatTime(suggestedTimeWindow.endTime)}
                 </Text>
               </View>
               <TouchableOpacity onPress={dismissSuggestion}>
@@ -164,7 +172,7 @@ export default function CareListScreen(): React.JSX.Element {
       )}
 
       <FlatList
-        data={providers}
+        data={providers ?? []}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         refreshing={isRefetching}
@@ -212,7 +220,7 @@ export default function CareListScreen(): React.JSX.Element {
                 </Text>
               ) : null}
 
-              {item.services.length > 0 && (
+              {Array.isArray(item.services) && item.services.length > 0 && (
                 <View style={styles.servicesContainer}>
                   {item.services.map((svc) => (
                     <View key={svc} style={[styles.serviceBadge, { backgroundColor: colors.care + '15' }]}>
