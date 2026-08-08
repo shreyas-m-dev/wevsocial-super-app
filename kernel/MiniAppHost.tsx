@@ -38,13 +38,17 @@ export function MiniAppHost({
   getUser,
   onNavigate,
 }: MiniAppHostProps): React.JSX.Element {
-  // Initialize permissions on mount
-  useEffect(() => {
+  // CRITICAL: Initialize permissions synchronously before SDK creation.
+  // If this were in useEffect (which runs after render), the SDK would be
+  // created and children would call sdk.bridge.on() before permissions exist,
+  // causing "Permission denied" errors on the first render.
+  useMemo(() => {
     initializePermissions(manifest);
+  }, [manifest]);
 
+  // Cleanup permissions and listeners on unmount
+  useEffect(() => {
     return () => {
-      // CLEANUP: Revoke all permissions and remove event listeners on unmount.
-      // This prevents stale listeners from a previous mount from firing.
       revokeAllPermissions(manifest.id);
       removeAllListeners(manifest.id);
     };
